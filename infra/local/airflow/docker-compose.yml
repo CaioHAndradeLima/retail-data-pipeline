@@ -1,0 +1,67 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+
+    volumes:
+      - postgres-db-volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 10s
+      retries: 5
+    restart: always
+
+  airflow-webserver:
+    env_file:
+      - ../../.env
+    build:
+      context: ../../..          # project root
+      dockerfile: infra/local/airflow/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__FERNET_KEY: ""
+      AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "true"
+    volumes:
+      - ../../../airflow/dags:/opt/airflow/dags
+      - airflow-logs:/opt/airflow/logs
+
+    ports:
+      - "8081:8080"
+    restart: always
+    command: webserver
+
+  airflow-scheduler:
+    env_file:
+      - ../../.env
+    build:
+      context: ../../..          # project root
+      dockerfile: infra/local/airflow/Dockerfile
+    command: scheduler
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__FERNET_KEY: ""
+    volumes:
+      - ../../../airflow/dags:/opt/airflow/dags
+      - .airflow-logs:/opt/airflow/logs
+      - validation:/opt/airflow/validation
+
+    restart: always
+
+volumes:
+  postgres-db-volume:
+  airflow-logs:
