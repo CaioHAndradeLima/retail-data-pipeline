@@ -1,0 +1,15 @@
+#bin/bash
+
+brew install --cask snowflake-snowsql
+
+# -a account -u user -r role -w warehouse -d db -s schema
+# to figure the information run in snowflake dashboard sql:
+# SELECT CURRENT_ACCOUNT(), CURRENT_USER(), CURRENT_REGION(), CURRENT_ROLE();
+
+snowsql -a YS80657.us-east-2.aws \
+        -u CAIOHANDRADELIMA \
+        -r ACCOUNTADMIN \
+        -w COMPUTE_WH \
+        -d RETAIL_ANALYTICS \
+        -s BRONZE \
+        -o log_level=DEBUG
