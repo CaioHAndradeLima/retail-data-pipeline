@@ -324,3 +324,11 @@ Python Event Gen     dbt Silver
      │               Snowflake GOLD
      └──────────────▶ Power BI
 ```
+
+
+| Feature            | Current Python / Airflow Approach                         | High-Standard Approach (Kafka Connect)              |
+|--------------------|------------------------------------------------------------|-----------------------------------------------------|
+| Duplicate Handling | Depends on Kafka commits (risk of duplicates)              | Exactly-once delivery via Snowflake Pipe             |
+| Complexity         | Low (custom Python logic)                                  | Medium (requires Kafka Connect cluster)              |
+| Latency            | Batch-based (data processed when Airflow runs)             | Near real-time (seconds)                             |
+| CDC Handling       | Hard to handle Debezium `DELETE` and update events          | Native support for CDC schemas (Debezium-compatible) |
