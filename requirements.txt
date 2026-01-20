@@ -1,13 +1,14 @@
-# Snowflake
-snowflake-connector-python==3.6.0
+# Snowflake - Bumped to 3.10.0 for better compatibility
+snowflake-connector-python==3.10.0
 snowflake-sqlalchemy==1.5.1
 
-# Kafka (optional, for later)
+# Kafka
 confluent-kafka==2.3.0
 
-# Data handling
+# Data handling - pinned to compatible versions
 pandas==2.1.4
 pyarrow==14.0.2
+numpy==1.26.4
 
 # Environment variables
 python-dotenv==1.0.1
