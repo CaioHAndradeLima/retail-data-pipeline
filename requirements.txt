@@ -1,22 +1,24 @@
-# --- Snowflake & Data Stack ---
-# Use >= to allow Airflow constraints to pick the best sub-version
-snowflake-connector-python>=3.12.0
-snowflake-sqlalchemy>=1.6.0
-pandas>=2.1.0
-pyarrow>=14.0.0
-numpy>=1.26.0
+# --- Core Stack (Exactly matching Airflow 2.10.4 Constraints) ---
+# This prevents pip from backtracking to ancient, broken versions
+numpy==1.26.4
+pyarrow==14.0.2
+pandas==2.1.4
+dill==0.3.8
+confluent-kafka==2.6.1
+
+# --- Snowflake ---
+# These versions play perfectly with the core stack above
+snowflake-connector-python==3.12.3
+snowflake-sqlalchemy==1.7.1
 
 # --- Orchestration ---
-# This is our anchor version
 apache-airflow==2.10.4
 
 # --- Transformation (DBT) ---
-# Aligned to 1.7+ which is compatible with the libraries above
-dbt-core>=1.7.0
-dbt-snowflake>=1.7.0
+# Pinning to 1.7.x to ensure it doesn't try to pull in old 'agate' or 'dill'
+dbt-core==1.7.18
+dbt-snowflake==1.7.3
 
 # --- Utils ---
-# Use >= here so it doesn't fight the Airflow constraint for 2.6.1
-confluent-kafka>=2.3.0
-python-dotenv>=1.0.0
-structlog>=24.1.0
+python-dotenv==1.0.1
+structlog==24.1.0

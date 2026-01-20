@@ -32,6 +32,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
+          # Using 3.10 ensures we get the latest stable 3.10.x patches
           python-version: "3.10"
           cache: 'pip'
 
@@ -39,23 +40,25 @@ jobs:
         env:
           SKIP_ARROW_BUILD: 1
         run: |
-          # 1. Core upgrade
+          # 1. Prepare environment
           python -m pip install --upgrade pip setuptools wheel
 
-          # 2. Use Airflow 2.10.4 Constraints
+          # 2. Stage 1: Force-install the "Conflict Makers" as binaries.
+          # This sets a 'floor' so pip cannot backtrack to old source versions.
+          pip install --only-binary :all: numpy==1.26.4 pyarrow==14.0.2 dill==0.3.8
+
+          # 3. Define the official Airflow constraints for this Python version
           export CONSTRAINT_URL="https://raw.githubusercontent.com/apache/airflow/constraints-2.10.4/constraints-3.10.txt"
 
-          # 3. Unified Binary Install
-          # This command resolves everything at once:
-          # - Your project requirements
-          # - Airflow's strict constraints
-          # - Test tools (pytest, etc.)
+          # 4. Stage 2: Unified Install
+          # We include the dev tools (pytest/ruff/black) here so they don't 
+          # cause a secondary conflict later.
           pip install --only-binary :all: \
             --constraint "${CONSTRAINT_URL}" \
             -r requirements.txt \
-            pytest ruff black
+            pytest==8.0.0 ruff==0.1.9 black==24.1.1
 
-          # 4. Final local install
+          # 5. Local project install
           pip install -e .
 
       - name: Lint and Format
