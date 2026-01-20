@@ -1,5 +1,7 @@
 # retail-data-pipeline
 
+[![Retail Data Pipeline](https://github.com/CaioHAndradeLima/retail-data-pipeline/actions/workflows/ci.yml/badge.svg)](https://github.com/CaioHAndradeLima/retail-data-pipeline/actions/workflows/ci.yml)
+
 ``````
             ┌──────────────┐
             │ Batch Source │

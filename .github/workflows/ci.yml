@@ -42,30 +42,25 @@ jobs:
 
       - name: Install dependencies
         run: |
-      - name: Install dependencies
-        run: |
           python -m pip install --upgrade pip setuptools wheel
-      
-          # 1. Install NumPy FIRST (wheel only)
-          pip install numpy==1.26.4
-      
-          # 2. Install pyarrow WITHOUT build isolation
-          pip install pyarrow==14.0.2 --no-build-isolation
-      
-          # 3. Install the rest
+
+          # Force install of pre-compiled binaries for the problematic packages
+          # This prevents them from trying to compile numpy/pyarrow from source
+          pip install --only-binary :all: numpy==1.26.4 pyarrow==14.0.2
+
+          # Install snowflake-connector separately to ensure it sees the binary pyarrow
+          pip install --only-binary :all: snowflake-connector-python==3.6.0
+
+          # Now install the rest of your requirements
           pip install -r requirements.txt
-      
-          # 4. Install Airflow with constraints
+
+          # Install Airflow with constraints (this is good practice)
           export CONSTRAINT_URL="https://raw.githubusercontent.com/apache/airflow/constraints-2.8.1/constraints-3.10.txt"
-          pip uninstall -y apache-airflow || true
           pip install "apache-airflow[postgres]==2.8.1" --constraint "${CONSTRAINT_URL}"
-      
-          # 5. Dev tools
+
+          # Remaining tools
           pip install pytest ruff black dbt-core dbt-snowflake
-      
-          # 6. Local package
-          pip install -e .
-      # Python quality
+          pip install -e .      # Python quality
       # ---------------------------
       - name: Lint with ruff
         run: ruff check .
