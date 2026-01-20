@@ -45,28 +45,22 @@ def snowflake_bulk_insert_order_events(events: list) -> None:
         file_path = f.name
 
     conn = get_snowflake_connection(
-        database="RETAIL_ANALYTICS",
-        schema="BRONZE",
-        warehouse="RETAIL_WH"
+        database="RETAIL_ANALYTICS", schema="BRONZE", warehouse="RETAIL_WH"
     )
 
     cursor = conn.cursor()
 
     try:
         # Upload file to table stage
-        cursor.execute(
-            f"PUT file://{file_path} @%ORDER_EVENTS AUTO_COMPRESS=TRUE"
-        )
+        cursor.execute(f"PUT file://{file_path} @%ORDER_EVENTS AUTO_COMPRESS=TRUE")
 
         # Bulk load into table
-        cursor.execute(
-            """
+        cursor.execute("""
             COPY INTO ORDER_EVENTS
             FROM @%ORDER_EVENTS
             FILE_FORMAT = (TYPE = JSON)
             MATCH_BY_COLUMN_NAME = CASE_INSENSITIVE
-            """
-        )
+            """)
     except Exception:
         logger.exception("Snowflake ingestion failed")
         raise
