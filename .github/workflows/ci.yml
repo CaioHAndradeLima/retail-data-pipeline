@@ -64,7 +64,7 @@ jobs:
       # ---------------------------
       - name: Install dev tools
         run: |
-          pip install ruff black
+          pip install ruff black pytest
 
       - name: Lint with ruff
         run: ruff check .
