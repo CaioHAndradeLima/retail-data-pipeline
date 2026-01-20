@@ -10,7 +10,7 @@ pandas==2.1.4
 pyarrow==14.0.2
 
 # Environment variables
-python-dotenv==1.0.1
+python-dotenv>=1.0.0,<2
 
 # Logging / utils
 structlog==24.1.0
