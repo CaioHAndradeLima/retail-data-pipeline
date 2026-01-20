@@ -37,22 +37,23 @@ jobs:
 
       - name: Install dependencies
         env:
-          SKIP_ARROW_BUILD: 1  # Crucial for Snowflake connector
+          SKIP_ARROW_BUILD: 1
         run: |
           # 1. Prepare environment
           python -m pip install --upgrade pip setuptools wheel
 
-          # 2. Define Airflow constraints to act as a 'safety net'
-          export CONSTRAINT_URL="https://raw.githubusercontent.com/apache/airflow/constraints-2.8.1/constraints-3.10.txt"
+          # 2. Update Constraint URL to 2.10.4 (This supports NumPy 1.26.x)
+          export CONSTRAINT_URL="https://raw.githubusercontent.com/apache/airflow/constraints-2.10.4/constraints-3.10.txt"
 
-          # 3. SINGLE-SHOT INSTALL
-          # We pass the requirements and the constraints together.
-          # '--only-binary :all:' forbids pip from ever trying to compile C code.
+          # 3. Unified Binary-Only Install
+          # We no longer force numpy manually; we let the constraints and requirements 
+          # find the version that works for everyone.
           pip install --only-binary :all: \
             --constraint "${CONSTRAINT_URL}" \
-            -r requirements.txt
+            -r requirements.txt \
+            pytest ruff black
 
-          # 4. Install the local project in editable mode
+          # 4. Install the local project
           pip install -e .
 
       - name: Lint and Format
