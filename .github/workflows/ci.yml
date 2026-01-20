@@ -26,54 +26,70 @@ jobs:
           --health-retries=5
 
     steps:
+      # ---------------------------
+      # Checkout
+      # ---------------------------
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # ---------------------------
+      # Python setup
+      # ---------------------------
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          # Using 3.10 ensures we get the latest stable 3.10.x patches
           python-version: "3.10"
-          cache: 'pip'
 
       - name: Install dependencies
-        env:
-          SKIP_ARROW_BUILD: 1
         run: |
-          # 1. Prepare environment
-          python -m pip install --upgrade pip setuptools wheel
-
-          # 2. Stage 1: Force-install the "Conflict Makers" as binaries.
-          # This sets a 'floor' so pip cannot backtrack to old source versions.
-          pip install --only-binary :all: numpy==1.26.4 pyarrow==14.0.2 dill==0.3.8
-
-          # 3. Define the official Airflow constraints for this Python version
-          export CONSTRAINT_URL="https://raw.githubusercontent.com/apache/airflow/constraints-2.10.4/constraints-3.10.txt"
-
-          # 4. Stage 2: Unified Install
-          # We include the dev tools (pytest/ruff/black) here so they don't 
-          # cause a secondary conflict later.
-          pip install --only-binary :all: \
-            --constraint "${CONSTRAINT_URL}" \
-            -r requirements.txt \
-            pytest==8.0.0 ruff==0.1.9 black==24.1.1
-
-          # 5. Local project install
+          python -m pip install --upgrade pip
+      
+          # Define the constraints URL for Airflow 2.8.1 and Python 3.10
+          export CONSTRAINT_URL="https://raw.githubusercontent.com/apache/airflow/constraints-2.8.1/constraints-3.10.txt"
+      
+          # 1. Uninstall any pre-existing airflow to avoid conflicts
+          pip uninstall -y apache-airflow || true
+      
+          # 2. Install Airflow with constraints (this handles Flask-Session automatically)
+          pip install "apache-airflow[postgres]==2.8.1" --constraint "${CONSTRAINT_URL}"
+      
+          # 3. Install your specific project requirements
+          pip install -r requirements.txt
+      
+          # 4. Install dev tools and other integrations
+          pip install \
+            pytest \
+            ruff \
+            black \
+            dbt-core \
+            dbt-snowflake
+      
+          # 5. Install local package if applicable
           pip install -e .
+      # Python quality
+      # ---------------------------
+      - name: Lint with ruff
+        run: ruff check .
 
-      - name: Lint and Format
-        run: |
-          ruff check .
-          black --check .
+      - name: Check formatting with black
+        run: black --check .
 
+      # ---------------------------
+      # Unit tests
+      # ---------------------------
       - name: Run unit tests
         env:
           PYTHONPATH: ${{ github.workspace }}
         run: python -m pytest
 
+      # ---------------------------
+      # Airflow DAG validation
+      # ---------------------------
+# ---------------------------
+      # Airflow DAG validation
+      # ---------------------------
       - name: Validate Airflow DAGs
         env:
-          PYTHONPATH: ${{ github.workspace }}
           AIRFLOW__CORE__EXECUTOR: SequentialExecutor
           AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@localhost:5432/airflow
           AIRFLOW__CORE__LOAD_EXAMPLES: "false"
@@ -82,11 +98,25 @@ jobs:
           python - <<EOF
           import os
           from airflow.models import DagBag
+          
+          # Point to the specific dags folder in your repo
           dag_folder = os.path.join(os.getcwd(), 'airflow/dags')
+          print(f"Searching for DAGs in: {dag_folder}")
+          
           dagbag = DagBag(dag_folder=dag_folder, include_examples=False)
+          
           if dagbag.import_errors:
+              print("Import Errors found:")
               for filename, errors in dagbag.import_errors.items():
                   print(f"File: {filename}\nErrors: {errors}")
               exit(1)
-          print(f"Loaded {len(dagbag.dags)} DAGs successfully")
+              
+          print(f"Loaded {len(dagbag.dags)} DAGs successfully and no errors has been found")
           EOF
+      # ---------------------------
+      # DBT validation (Snowflake-ready)
+      # ---------------------------
+      #- name: DBT compile
+       # run: |
+        #  cd dbt/weather_dbt
+         # dbt compile --profiles-dir .
