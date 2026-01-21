@@ -23,3 +23,5 @@ left join {{ ref('payments_current') }} p
     on o.order_id = p.order_id
 left join {{ ref('shipments_current') }} s
     on o.order_id = s.order_id
+where o.last_updated_at >= current_date - 180
+

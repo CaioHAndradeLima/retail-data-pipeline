@@ -1,3 +1,5 @@
+{{ config(materialized='incremental', unique_key='customer_id') }}
+
 with ranked_snapshots as (
 
     select
@@ -14,6 +16,15 @@ with ranked_snapshots as (
         ) as rn
 
     from {{ source('bronze', 'CUSTOMERS_SNAPSHOT') }}
+
+    {% if is_incremental() %}
+        where snapshot_date >
+            (
+                select coalesce(max(last_snapshot_date), '1900-01-01')
+                from {{ this }}
+            )
+    {% endif %}
+
 )
 
 select

@@ -50,3 +50,6 @@ infra/remote/aws/terraform-user-keys
 
 # dbt
 dbt/logs
+
+# unnecessary packages
+airflow/src

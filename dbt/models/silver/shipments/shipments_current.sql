@@ -1,3 +1,5 @@
+{{ config(materialized='incremental', unique_key='shipment_id') }}
+
 with ranked_events as (
 
     select
@@ -13,6 +15,10 @@ with ranked_events as (
         ) as rn
 
     from {{ source('bronze', 'SHIPMENT_EVENTS') }}
+
+    {% if is_incremental() %}
+        where event_timestamp > (select max(last_updated_at) from {{ this }})
+    {% endif %}
 )
 
 select

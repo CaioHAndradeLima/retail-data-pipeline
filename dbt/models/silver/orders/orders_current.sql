@@ -1,3 +1,5 @@
+{{ config(materialized='incremental', unique_key='order_id') }}
+
 with ranked_events as (
 
     select
@@ -18,7 +20,11 @@ with ranked_events as (
         ) as rn
 
     from {{ source('bronze', 'ORDER_EVENTS') }}
-    where order_id is not null
+
+    {% if is_incremental() %}
+        where event_timestamp > (select max(last_updated_at) from {{ this }})
+    {% endif %}
+
 )
 
 select

@@ -1,3 +1,5 @@
+{{ config(materialized='incremental', unique_key='product_id') }}
+
 with ranked_snapshots as (
 
     select
@@ -14,6 +16,11 @@ with ranked_snapshots as (
         ) as rn
 
     from {{ source('bronze', 'PRODUCTS_SNAPSHOT') }}
+
+    {% if is_incremental() %}
+        where snapshot_date > (select max(last_snapshot_date) from {{ this }})
+    {% endif %}
+
 )
 
 select
