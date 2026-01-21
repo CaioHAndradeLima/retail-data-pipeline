@@ -9,12 +9,12 @@ logger = logging.getLogger(__name__)
 
 
 def snowflake_bulk_insert(
-    *,
-    table_name: str,
-    records: List[Dict],
-    database: str,
-    schema: str,
-    warehouse: str,
+        *,
+        table_name: str,
+        records: List[Dict],
+        database: str,
+        schema: str,
+        warehouse: str,
 ) -> None:
     """
     Generic bulk insert into Snowflake using PUT + COPY INTO.

@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 
 from src.snowflake.loader import snowflake_bulk_insert
 
+
 def write_customers_snapshot(rows: list) -> None:
     snapshot_date = datetime.now(tz=timezone.utc).date()
 
