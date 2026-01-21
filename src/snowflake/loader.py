@@ -9,15 +9,15 @@ logger = logging.getLogger(__name__)
 
 
 def snowflake_bulk_insert(
-        *,
-        table_name: str,
-        records: List[Dict],
-        database: str,
-        schema: str,
-        warehouse: str,
+    *,
+    table_name: str,
+    records: List[Dict],
+    database: str,
+    schema: str,
+    warehouse: str,
 ) -> None:
     """
-    Generic bulk insert into Snowflake using PUT + COPY INTO.
+    Generic bulk insert into Snowflake us›ing PUT + COPY INTO.
 
     Assumes:
       - records are dicts with keys matching column names
@@ -43,19 +43,15 @@ def snowflake_bulk_insert(
 
     try:
         # 2️⃣ Upload file to table stage
-        cursor.execute(
-            f"PUT file://{file_path} @%{table_name} AUTO_COMPRESS=TRUE"
-        )
+        cursor.execute(f"PUT file://{file_path} @%{table_name} AUTO_COMPRESS=TRUE")
 
         # 3️⃣ Copy into table
-        cursor.execute(
-            f"""
+        cursor.execute(f"""
             COPY INTO {table_name}
             FROM @%{table_name}
             FILE_FORMAT = (TYPE = JSON)
             MATCH_BY_COLUMN_NAME = CASE_INSENSITIVE
-            """
-        )
+            """)
 
     except Exception:
         logger.exception("Snowflake bulk insert failed")

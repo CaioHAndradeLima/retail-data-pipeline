@@ -19,25 +19,27 @@ def snowflake_bulk_insert_order_events(events: list) -> None:
         payload = event["payload"]
         after = payload.get("after") or {}
 
-        records.append({
-            "EVENT_ID": str(uuid.uuid4()),
-            "EVENT_TYPE": payload["op"],
-            "EVENT_VERSION": 1,
-            "ORDER_ID": after.get("order_id"),
-            "CUSTOMER_ID": after.get("customer_id"),
-            "ORDER_STATUS": after.get("order_status"),
-            "ORDER_TOTAL": str(decode_decimal(after.get("order_total"))),
-            "CURRENCY": after.get("currency"),
-            "EVENT_TIMESTAMP": datetime.fromtimestamp(
-                payload["ts_ms"] / 1000, tz=timezone.utc
-            ).isoformat(),
-            "PRODUCED_AT": after.get("updated_at"),
-            "INGESTED_AT": datetime.now(tz=timezone.utc).isoformat(),
-            "SOURCE_SYSTEM": "postgres",
-            "KAFKA_TOPIC": event.get("topic"),
-            "KAFKA_PARTITION": event.get("partition"),
-            "KAFKA_OFFSET": event.get("offset"),
-        })
+        records.append(
+            {
+                "EVENT_ID": str(uuid.uuid4()),
+                "EVENT_TYPE": payload["op"],
+                "EVENT_VERSION": 1,
+                "ORDER_ID": after.get("order_id"),
+                "CUSTOMER_ID": after.get("customer_id"),
+                "ORDER_STATUS": after.get("order_status"),
+                "ORDER_TOTAL": str(decode_decimal(after.get("order_total"))),
+                "CURRENCY": after.get("currency"),
+                "EVENT_TIMESTAMP": datetime.fromtimestamp(
+                    payload["ts_ms"] / 1000, tz=timezone.utc
+                ).isoformat(),
+                "PRODUCED_AT": after.get("updated_at"),
+                "INGESTED_AT": datetime.now(tz=timezone.utc).isoformat(),
+                "SOURCE_SYSTEM": "postgres",
+                "KAFKA_TOPIC": event.get("topic"),
+                "KAFKA_PARTITION": event.get("partition"),
+                "KAFKA_OFFSET": event.get("offset"),
+            }
+        )
 
     logger.info("Inserting new CDC event in Snowflake")
     snowflake_bulk_insert(

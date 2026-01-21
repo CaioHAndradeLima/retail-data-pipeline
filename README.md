@@ -334,3 +334,28 @@ Python Event Gen     dbt Silver
 | Complexity         | Low (custom Python logic)                                  | Medium (requires Kafka Connect cluster)              |
 | Latency            | Batch-based (data processed when Airflow runs)             | Near real-time (seconds)                             |
 | CDC Handling       | Hard to handle Debezium `DELETE` and update events          | Native support for CDC schemas (Debezium-compatible) |
+
+
+
+dbt orchestration approachs:
+
+| Aspect                    | **Approach A — CLI-based dbt orchestration** | **Approach B — dbt Cosmos (Task-per-model)** |
+| ------------------------- | -------------------------------------------- | -------------------------------------------- |
+| Orchestration unit        | dbt commands (`dbt run`, `dbt test`)         | Individual dbt models and tests              |
+| Airflow complexity        | ⭐ Low                                        | ⭐⭐⭐ High                                     |
+| Setup effort              | Minimal                                      | Moderate to high                             |
+| Learning curve            | Easy                                         | Steep                                        |
+| dbt dependency handling   | Fully handled by dbt                         | Reflected in Airflow DAG                     |
+| Airflow DAG size          | Small and clean                              | Large and dynamic                            |
+| Observability in Airflow  | Limited (command-level)                      | Excellent (model-level)                      |
+| Failure granularity       | Pipeline-level failure                       | Model-level failure                          |
+| Retry strategy            | Retry full dbt run                           | Retry failed models only                     |
+| Debugging                 | Simple (CLI logs)                            | Requires understanding Cosmos internals      |
+| Local development         | Very easy                                    | More complex                                 |
+| CI/CD friendliness        | Excellent                                    | Good but heavier                             |
+| Scalability               | High                                         | Very high                                    |
+| Operational overhead      | Low                                          | Medium to high                               |
+| Best for                  | Startups, mid-size teams, portfolio projects | Mature data platforms, analytics-heavy orgs  |
+| Industry adoption         | ⭐⭐⭐⭐⭐ (most common)                          | ⭐⭐⭐ (growing, but niche)                     |
+| Recommended as first step | ✅ Yes                                        | ❌ No                                         |
+| Migration path            | Easy → Cosmos later                          | Hard to downgrade                            |
