@@ -158,107 +158,50 @@ Requirements:
 * Python installed
 * PIP installed
 
+whenever you have all requirements you only need run to create Snowflake remote environment and run the local development environment via Docker
 
-
-run create snowflake user to terraform
-
-and then run terraform apply
-
-
-
-install local python dependencies:
-
-pip install --upgrade pip
-pip install -r requirements.txt
-
-
-``` yml
-         ┌────────────┐
-         │  Postgres  │
-         └─────┬──────┘
-               │
-        Airflow (batch DAG)
-               │
-         Snowflake BRONZE
-               │
-     ┌─────────┴─────────┐
-     │                   │
-Python Event Gen     dbt Silver
-(Streaming sim)          │
-     │               Snowflake GOLD
-     └──────────────▶ Power BI
+``` bash
+chmod +x setup.sh
+./setup.sh
 ```
 
 
-| Feature            | Current Python / Airflow Approach                         | High-Standard Approach (Kafka Connect)              |
-|--------------------|------------------------------------------------------------|-----------------------------------------------------|
+<h1> Updates </h1>
+
+Currently the project is running and catching CDC events through local Python code, this is not the best approach and we should have a tool to deal with CDC without native code such as Airbyte/kafka-connect cluster.
+Below we can see the advances/disvantagens native Python to capture events against a cloud tool such as Airbyte.
+
+| Feature            | Current Python / Airflow Approach                         | High-Standard Approach (Kafka Connect)               |
+|--------------------|------------------------------------------------------------|------------------------------------------------------|
 | Duplicate Handling | Depends on Kafka commits (risk of duplicates)              | Exactly-once delivery via Snowflake Pipe             |
-| Complexity         | Low (custom Python logic)                                  | Medium (requires Kafka Connect cluster)              |
+| Complexity         | Low (custom Python logic)                                  | Medium (requires Airbyte)                            |
 | Latency            | Batch-based (data processed when Airflow runs)             | Near real-time (seconds)                             |
 | CDC Handling       | Hard to handle Debezium `DELETE` and update events          | Native support for CDC schemas (Debezium-compatible) |
 
 
 
-dbt orchestration approachs:
+<h1> DBT execution </h1>
 
-| Aspect                    | **Approach A — CLI-based dbt orchestration** | **Approach B — dbt Cosmos (Task-per-model)** |
-| ------------------------- | -------------------------------------------- | -------------------------------------------- |
-| Orchestration unit        | dbt commands (`dbt run`, `dbt test`)         | Individual dbt models and tests              |
-| Airflow complexity        | ⭐ Low                                        | ⭐⭐⭐ High                                     |
-| Setup effort              | Minimal                                      | Moderate to high                             |
-| Learning curve            | Easy                                         | Steep                                        |
-| dbt dependency handling   | Fully handled by dbt                         | Reflected in Airflow DAG                     |
-| Airflow DAG size          | Small and clean                              | Large and dynamic                            |
-| Observability in Airflow  | Limited (command-level)                      | Excellent (model-level)                      |
-| Failure granularity       | Pipeline-level failure                       | Model-level failure                          |
-| Retry strategy            | Retry full dbt run                           | Retry failed models only                     |
-| Debugging                 | Simple (CLI logs)                            | Requires understanding Cosmos internals      |
-| Local development         | Very easy                                    | More complex                                 |
-| CI/CD friendliness        | Excellent                                    | Good but heavier                             |
-| Scalability               | High                                         | Very high                                    |
-| Operational overhead      | Low                                          | Medium to high                               |
-| Best for                  | Startups, mid-size teams, portfolio projects | Mature data platforms, analytics-heavy orgs  |
-| Industry adoption         | ⭐⭐⭐⭐⭐ (most common)                          | ⭐⭐⭐ (growing, but niche)                     |
-| Recommended as first step | ✅ Yes                                        | ❌ No                                         |
-| Migration path            | Easy → Cosmos later                          | Hard to downgrade                            |
+Currently the project is running DBT using CLI-based dbt orchestration method. Below we can see the difference between the Task-per-model and CLI-based.
 
 
-production environment:
-
-``` yml
-┌────────────┐
-│   RDS      │
-│ Postgres   │
-│ (CDC ON)   │
-└─────┬──────┘
-      │  (logical replication / WAL)
-      ▼
-┌──────────────────┐
-│  Debezium        │
-│  (Kafka Connect) │
-└─────┬────────────┘
-      ▼
-┌──────────────────┐
-│   Kafka / MSK    │
-│  (event log)     │
-└─────┬────────────┘
-      ▼
-┌──────────────────┐
-│ Snowflake BRONZE │  ← raw CDC events
-└─────┬────────────┘
-      ▼
-┌──────────────────┐
-│ dbt SILVER/GOLD  │
-└─────┬────────────┘
-      ▼
-┌──────────────────┐
-│ Power BI         │
-└──────────────────┘
-
-┌──────────────────┐
-│ MWAA (Airflow)   │
-│ - orchestration  │
-│ - dbt runs       │
-│ - monitoring     │
-└──────────────────┘
-```
+| Aspect                    | **Approach A — CLI-based dbt orchestration** | ** dbt Cosmos (Task-per-model)**            |
+| ------------------------- |----------------------------------------------|---------------------------------------------|
+| Orchestration unit        | dbt commands (`dbt run`, `dbt test`)         | Individual dbt models and tests             |
+| Airflow complexity        | Low                                          | High                                        |
+| Setup effort              | Minimal                                      | Moderate to high                            |
+| Learning curve            | Easy                                         | Steep                                       |
+| dbt dependency handling   | Fully handled by dbt                         | Reflected in Airflow DAG                    |
+| Airflow DAG size          | Small and clean                              | Large and dynamic                           |
+| Observability in Airflow  | Limited (command-level)                      | Excellent (model-level)                     |
+| Failure granularity       | Pipeline-level failure                       | Model-level failure                         |
+| Retry strategy            | Retry full dbt run                           | Retry failed models only                    |
+| Debugging                 | Simple (CLI logs)                            | Requires understanding Cosmos internals     |
+| Local development         | Very easy                                    | More complex                                |
+| CI/CD friendliness        | Excellent                                    | Good but heavier                            |
+| Scalability               | High                                         | Very high                                   |
+| Operational overhead      | Low                                          | Medium to high                              |
+| Best for                  | Startups, mid-size teams, portfolio projects | Mature data platforms, analytics-heavy orgs |
+| Industry adoption         | most common                                  | (growing, but niche)                        |
+| Recommended as first step | Yes                                          | No                                          |
+| Migration path            | Easy → Cosmos later                          | Hard to downgrade                           |
