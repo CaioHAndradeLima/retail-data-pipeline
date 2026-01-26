@@ -1,7 +1,7 @@
 version: 2
 
 models:
-  - name: bronze_order_events
+  - name: order_events
     description: "Raw order events ingested from event streams"
     columns:
       - name: event_id
@@ -9,7 +9,7 @@ models:
       - name: event_timestamp
         tests: [not_null]
 
-  - name: bronze_payment_events
+  - name: payment_events
     description: "Raw payment events ingested from Postgres CDC"
     columns:
       - name: event_id
@@ -17,13 +17,13 @@ models:
       - name: payment_id
         tests: [not_null]
 
-  - name: bronze_shipment_events
+  - name: shipment_events
     description: "Raw shipment lifecycle events"
     columns:
       - name: shipment_id
         tests: [not_null]
 
-  - name: bronze_customers_snapshot
+  - name: customers_snapshot
     description: "Daily snapshot of customers"
     columns:
       - name: customer_id
@@ -31,7 +31,7 @@ models:
       - name: snapshot_date
         tests: [not_null]
 
-  - name: bronze_products_snapshot
+  - name: products_snapshot
     description: "Daily snapshot of products"
     columns:
       - name: product_id

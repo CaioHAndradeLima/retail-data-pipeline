@@ -1,4 +1,4 @@
-{{ config(materialized='incremental', unique_key='payment_id', schema='silver') }}
+{{ config(materialized='incremental', unique_key='payment_id', schema='SILVER') }}
 
 with ranked_events as (
 

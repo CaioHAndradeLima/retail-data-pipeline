@@ -1,4 +1,4 @@
-{{ config(schema='silver') }}
+{{ config(schema='SILVER') }}
 
 select
     o.order_id,

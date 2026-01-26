@@ -1,4 +1,4 @@
-{{ config(materialized='incremental', unique_key='product_id', schema='silver') }}
+{{ config(materialized='incremental', unique_key='product_id', schema='SILVER') }}
 
 with ranked_snapshots as (
 

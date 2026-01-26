@@ -51,7 +51,7 @@ with DAG(
         bash_command=(
             f"cd {DBT_PROJECT_DIR} && "
             f"dbt run "
-            f"--select bronze "
+            f"--select bronze --exclude silver "
             f"--target {DBT_TARGET} "
             f"--profiles-dir {DBT_PROFILES_DIR}"
         ),
