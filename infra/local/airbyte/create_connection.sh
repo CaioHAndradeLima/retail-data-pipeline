@@ -64,7 +64,7 @@ for i in $(seq 0 $((CONNECTION_COUNT - 1))); do
   CONNECTION_STATUS=$(echo "$CONNECTION" | jq -r '.status')
 
   echo ""
-  echo "🔗 Processing connection: $CONNECTION_NAME"
+  echo "Processing connection: $CONNECTION_NAME"
 
   # ---------------------------------------------------
   # Build syncCatalog.streams for this connection
@@ -96,7 +96,7 @@ for i in $(seq 0 $((CONNECTION_COUNT - 1))); do
   STREAM_COUNT=$(echo "$STREAMS" | jq 'length')
 
   if [ "$STREAM_COUNT" -eq 0 ]; then
-    echo "⚠️  No matching streams found for $CONNECTION_NAME — skipping"
+    echo "No matching streams found for $CONNECTION_NAME — skipping"
     continue
   fi
 
@@ -146,14 +146,12 @@ for i in $(seq 0 $((CONNECTION_COUNT - 1))); do
   fi
 
   # ---------------------------------------------------
-  # Trigger sync
+  # Trigger sync - Airflow is orchestrating syncs
   # ---------------------------------------------------
-  echo "Triggering sync for $CONNECTION_NAME"
-
-  curl -s -X POST "$AIRBYTE_BASE/connections/sync" \
-    -H "Content-Type: application/json" \
-    -d "{\"connectionId\":\"$CONNECTION_ID\"}" >/dev/null
+  #curl -s -X POST "$AIRBYTE_BASE/connections/sync" \
+  #  -H "Content-Type: application/json" \
+  #  -d "{\"connectionId\":\"$CONNECTION_ID\"}" >/dev/null
 done
 
 echo ""
-echo "🎉 All connections processed successfully"
+echo "All connections processed successfully"
