@@ -21,8 +21,8 @@ set -a
 source "$ENV_FILE"
 set +a
 
-if [ -z "${POSTGRES_SOURCE_ID:-}" ] || [ -z "${SNOWFLAKE_DESTINATION_ID:-}" ]; then
-  echo "ERROR: POSTGRES_SOURCE_ID or SNOWFLAKE_DESTINATION_ID not set"
+if [ -z "${POSTGRES_SOURCE_ID:-}" ] || [ -z "${SNOWFLAKE_DESTINATION_ID:-}" ] || [ -z "${WORKSPACE_ID:-}" ]; then
+  echo "ERROR: Required env vars not set"
   exit 1
 fi
 
@@ -34,12 +34,8 @@ if [ ! -f "$TABLES_FILE" ]; then
   exit 1
 fi
 
-echo "Source ID: $SOURCE_ID"
-echo "Destination ID: $DESTINATION_ID"
-echo "Workspace ID: $WORKSPACE_ID"
-
 # ---------------------------------------------------
-# Discover source schema
+# Discover source schema (once)
 # ---------------------------------------------------
 echo "Discovering source schema..."
 
@@ -55,109 +51,109 @@ fi
 
 CATALOG=$(echo "$DISCOVER_RESPONSE" | jq '.catalog')
 
-echo "Discovered tables:"
-echo "$CATALOG" | jq -r '.streams[].stream | "\(.namespace).\(.name)"'
-
 # ---------------------------------------------------
-# Build syncCatalog.streams
+# Loop over connections
 # ---------------------------------------------------
-echo "Building sync catalog from tables.json..."
+CONNECTION_COUNT=$(jq 'length' "$TABLES_FILE")
+echo "Processing $CONNECTION_COUNT connections"
 
-STREAMS=$(jq -n \
-  --argjson catalog "$CATALOG" \
-  --slurpfile cfg "$TABLES_FILE" '
-  [
-    $catalog.streams[] as $stream
-    | $cfg[0].tables[] as $table
-    | select(
-        $stream.stream.name == $table.name
-        and
-        ($stream.stream.namespace // "public") == $table.namespace
-      )
-    | {
-        stream: $stream.stream,
-        config: {
-          selected: true,
-          syncMode: $table.sync_mode,
-          destinationSyncMode: $table.destination_sync_mode,
-          cursorField: $table.cursor,
-          primaryKey: ($table.primary_key | map([.]))
+for i in $(seq 0 $((CONNECTION_COUNT - 1))); do
+  CONNECTION=$(jq ".[$i]" "$TABLES_FILE")
+
+  CONNECTION_NAME=$(echo "$CONNECTION" | jq -r '.name')
+  CONNECTION_STATUS=$(echo "$CONNECTION" | jq -r '.status')
+
+  echo ""
+  echo "🔗 Processing connection: $CONNECTION_NAME"
+
+  # ---------------------------------------------------
+  # Build syncCatalog.streams for this connection
+  # ---------------------------------------------------
+  STREAMS=$(jq -n \
+    --argjson catalog "$CATALOG" \
+    --argjson tables "$(echo "$CONNECTION" | jq '.tables')" '
+    [
+      $catalog.streams[] as $stream
+      | $tables[] as $table
+      | select(
+          $stream.stream.name == $table.name
+          and
+          ($stream.stream.namespace // "public") == $table.namespace
+        )
+      | {
+          stream: $stream.stream,
+          config: {
+            selected: true,
+            syncMode: $table.sync_mode,
+            destinationSyncMode: $table.destination_sync_mode,
+            cursorField: $table.cursor,
+            primaryKey: ($table.primary_key | map([.]))
+          }
         }
-      }
-  ]
-')
+    ]
+  ')
 
-STREAM_COUNT=$(echo "$STREAMS" | jq 'length')
+  STREAM_COUNT=$(echo "$STREAMS" | jq 'length')
 
-if [ "$STREAM_COUNT" -eq 0 ]; then
-  echo "ERROR: No matching tables found between discovery and tables.json"
-  exit 1
-fi
-
-echo "Prepared $STREAM_COUNT stream configurations"
-
-# ---------------------------------------------------
-# Check for existing connection
-# ---------------------------------------------------
-echo "Checking for existing connection..."
-
-EXISTING=$(curl -s -X POST "$AIRBYTE_BASE/connections/list" \
-  -H "Content-Type: application/json" \
-  -d "{\"workspaceId\":\"$WORKSPACE_ID\"}")
-
-CONNECTION_ID=$(echo "$EXISTING" | jq -r \
-  ".connections[]
-   | select(.sourceId==\"$SOURCE_ID\" and .destinationId==\"$DESTINATION_ID\")
-   | .connectionId" | head -n1)
-
-# ---------------------------------------------------
-# Create or update connection
-# ---------------------------------------------------
-if [ -z "$CONNECTION_ID" ] || [ "$CONNECTION_ID" = "null" ]; then
-  echo "Creating new connection..."
-
-  CONNECTION_NAME=$(jq -r '.connection.name' "$TABLES_FILE")
-  CONNECTION_STATUS=$(jq -r '.connection.status' "$TABLES_FILE")
-
-  CREATE_RESPONSE=$(curl -s -X POST "$AIRBYTE_BASE/connections/create" \
-    -H "Content-Type: application/json" \
-    -d "{
-      \"name\": \"$CONNECTION_NAME\",
-      \"sourceId\": \"$SOURCE_ID\",
-      \"destinationId\": \"$DESTINATION_ID\",
-      \"workspaceId\": \"$WORKSPACE_ID\",
-      \"status\": \"$CONNECTION_STATUS\",
-      \"syncCatalog\": { \"streams\": $STREAMS }
-    }")
-
-  CONNECTION_ID=$(echo "$CREATE_RESPONSE" | jq -r '.connectionId')
-
-  if [ -z "$CONNECTION_ID" ] || [ "$CONNECTION_ID" = "null" ]; then
-    echo "ERROR: Failed to create connection"
-    echo "$CREATE_RESPONSE"
-    exit 1
+  if [ "$STREAM_COUNT" -eq 0 ]; then
+    echo "⚠️  No matching streams found for $CONNECTION_NAME — skipping"
+    continue
   fi
 
-else
-  echo "Updating existing connection: $CONNECTION_ID"
-
-  curl -s -X POST "$AIRBYTE_BASE/connections/update" \
+  # ---------------------------------------------------
+  # Check if connection already exists (by name)
+  # ---------------------------------------------------
+  EXISTING=$(curl -s -X POST "$AIRBYTE_BASE/connections/list" \
     -H "Content-Type: application/json" \
-    -d "{
-      \"connectionId\": \"$CONNECTION_ID\",
-      \"syncCatalog\": { \"streams\": $STREAMS }
-    }" >/dev/null
-fi
+    -d "{\"workspaceId\":\"$WORKSPACE_ID\"}")
 
-echo "Connection ready: $CONNECTION_ID"
+  CONNECTION_ID=$(echo "$EXISTING" | jq -r \
+    ".connections[] | select(.name==\"$CONNECTION_NAME\") | .connectionId" | head -n1)
 
-# ---------------------------------------------------
-# Trigger sync
-# ---------------------------------------------------
-echo "Triggering sync..."
+  # ---------------------------------------------------
+  # Create or update connection
+  # ---------------------------------------------------
+  if [ -z "$CONNECTION_ID" ] || [ "$CONNECTION_ID" = "null" ]; then
+    echo "Creating connection: $CONNECTION_NAME"
 
-curl -s -X POST "$AIRBYTE_BASE/connections/sync" \
-  -H "Content-Type: application/json" \
-  -d "{\"connectionId\":\"$CONNECTION_ID\"}" >/dev/null
+    CREATE_RESPONSE=$(curl -s -X POST "$AIRBYTE_BASE/connections/create" \
+      -H "Content-Type: application/json" \
+      -d "{
+        \"name\": \"$CONNECTION_NAME\",
+        \"workspaceId\": \"$WORKSPACE_ID\",
+        \"sourceId\": \"$SOURCE_ID\",
+        \"destinationId\": \"$DESTINATION_ID\",
+        \"status\": \"$CONNECTION_STATUS\",
+        \"syncCatalog\": { \"streams\": $STREAMS }
+      }")
 
-echo "Sync triggered successfully"
+    CONNECTION_ID=$(echo "$CREATE_RESPONSE" | jq -r '.connectionId')
+
+    if [ -z "$CONNECTION_ID" ] || [ "$CONNECTION_ID" = "null" ]; then
+      echo "ERROR: Failed to create connection $CONNECTION_NAME"
+      echo "$CREATE_RESPONSE"
+      exit 1
+    fi
+  else
+    echo "Updating connection: $CONNECTION_NAME"
+
+    curl -s -X POST "$AIRBYTE_BASE/connections/update" \
+      -H "Content-Type: application/json" \
+      -d "{
+        \"connectionId\": \"$CONNECTION_ID\",
+        \"syncCatalog\": { \"streams\": $STREAMS }
+      }" >/dev/null
+  fi
+
+  # ---------------------------------------------------
+  # Trigger sync
+  # ---------------------------------------------------
+  echo "Triggering sync for $CONNECTION_NAME"
+
+  curl -s -X POST "$AIRBYTE_BASE/connections/sync" \
+    -H "Content-Type: application/json" \
+    -d "{\"connectionId\":\"$CONNECTION_ID\"}" >/dev/null
+done
+
+echo ""
+echo "🎉 All connections processed successfully"
