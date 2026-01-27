@@ -2,8 +2,8 @@
 set -e
 
 chmod +x ./airbyte/create_connection.sh
-chmod +x ./airbyte/create_postgres_source.sh
-chmod +x ./airbyte/create_snowflake_connection.sh
+chmod +x ./airbyte/setup_postgres_source.sh
+chmod +x ./airbyte/setup_snowflake_destination.sh
 chmod +x ./airbyte/generate_tables_json.sh
 chmod +x ./airbyte/start_airbyte.sh
 

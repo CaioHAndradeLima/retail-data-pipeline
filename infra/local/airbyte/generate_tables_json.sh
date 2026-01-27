@@ -41,30 +41,28 @@ echo "Generating tables.json..."
 
 jq -n \
   --argjson catalog "$CATALOG" '
-  {
-    connection: {
-      name: "postgres_to_snowflake",
-      status: "active"
-    },
-    tables: [
-      $catalog.streams[]
-      | {
-          name: .stream.name,
-          namespace: .stream.namespace,
-          sync_mode: "incremental",
-          destination_sync_mode: "append_dedup",
-          cursor: [],
-          primary_key: (
-            if (.stream.sourceDefinedPrimaryKey | length) > 0
-            then (.stream.sourceDefinedPrimaryKey | map(.[0]))
-            else []
-            end
-          )
-        }
-    ]
-  }' > "$OUTPUT_FILE"
+  [
+    $catalog.streams[]
+    | {
+        name: (.stream.name + "_postgres_to_snowflake"),
+        status: "active",
+        tables: [
+          {
+            name: .stream.name,
+            namespace: (.stream.namespace // "public"),
+            sync_mode: "incremental",
+            destination_sync_mode: "append_dedup",
+            cursor: [],
+            primary_key: (
+              if (.stream.sourceDefinedPrimaryKey | length) > 0
+              then (.stream.sourceDefinedPrimaryKey | map(.[0]))
+              else []
+              end
+            )
+          }
+        ]
+      }
+  ]
+  ' > "$OUTPUT_FILE"
 
 echo "tables.json generated successfully"
-echo "--------------------------------"
-jq . "$OUTPUT_FILE"
-echo "--------------------------------"
