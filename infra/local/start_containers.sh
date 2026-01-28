@@ -19,8 +19,8 @@ docker compose \
 # airbyte set up
 cd airbyte;
 
-./create_postgres_source.sh
-./create_snowflake_connection.sh
+./setup_postgres_source.sh
+./setup_snowflake_destination.sh
 ./generate_tables_json.sh
 ./create_connections.sh
 
