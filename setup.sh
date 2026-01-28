@@ -54,16 +54,12 @@ echo "SNOWFLAKE_DATABASE=$SNOWFLAKE_DATABASE" >> .env
 echo "SNOWFLAKE_ROLE=$SNOWFLAKE_ROLE" >> .env
 echo "SNOWFLAKE_SCHEMA=$SNOWFLAKE_SCHEMA" >> .env
 
-
 echo ""
 echo "" >> .env
 echo "Setting up your Airflow / Postgres configuration"
 echo "POSTGRES_USER=airflow" >> .env
 echo "POSTGRES_PASSWORD=airflow" >> .env
 echo "POSTGRES_DB=airflow" >> .env
-
-echo ""
-echo "Airflow security"
 
 # important for Kubernetes/ Databricks
 #ask "AIRFLOW_FERNET_KEY" "Airflow Fernet key (generate if you don't have one)"
@@ -83,11 +79,6 @@ echo "RETAIL_PG_PASSWORD=retail_password" >> .env
 
 echo ""
 echo ".env file successfully created!"
-
-# might be useful
-echo ""
-echo "Setting up dbt profile and snowflake dbt"
-python -m pip install dbt-core dbt-snowflake
 
 DBT_DIR="dbt"
 DBT_PROFILES_FILE="$DBT_DIR/profiles.yml"
@@ -110,7 +101,6 @@ EOF
 echo "dbt profile created at dbt/profiles.yml"
 
 echo ""
-
 echo "Now we'll create the Snowflake Remote environment using Terraform"
 
 echo "Installing snowflake-snowsql"
