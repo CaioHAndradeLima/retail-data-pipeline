@@ -69,7 +69,7 @@ echo "🚀 Creating Snowflake destination..."
 CREATE_RESPONSE=$(curl -s -X POST "$AIRBYTE_BASE/api/v1/destinations/create" \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "snowflake_retail_fresh1",
+    "name": "snowflake_retail",
     "workspaceId": "'"$WORKSPACE_ID"'",
     "destinationDefinitionId": "'"$SNOWFLAKE_DEF_ID"'",
     "connectionConfiguration": {

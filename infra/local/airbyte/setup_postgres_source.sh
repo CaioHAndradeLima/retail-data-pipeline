@@ -70,7 +70,7 @@ echo "🚀 Creating Postgres CDC source..."
 CREATE_RESPONSE=$(curl -s -X POST "$AIRBYTE_BASE/api/v1/sources/create" \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "postgres_retail_cdc1",
+    "name": "postgres_retail",
     "workspaceId": "'"$WORKSPACE_ID"'",
     "sourceDefinitionId": "'"$POSTGRES_DEF_ID"'",
     "connectionConfiguration": {
