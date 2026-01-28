@@ -98,7 +98,7 @@ retail_pipeline:
       role: $SNOWFLAKE_ROLE
       warehouse: $SNOWFLAKE_WAREHOUSE
       database: $SNOWFLAKE_DATABASE
-      database: BRONZE
+      schema: BRONZE
       threads: 4
 EOF
 
