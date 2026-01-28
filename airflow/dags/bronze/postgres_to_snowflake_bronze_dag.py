@@ -3,6 +3,7 @@ from datetime import datetime
 
 from airflow.decorators import dag, task
 from airflow.models import Variable
+from airflow.models.param import Param
 from dotenv import load_dotenv
 
 from src.ingestion.airbyte.client import AirbyteClient
@@ -18,13 +19,19 @@ load_dotenv()
     catchup=False,
     tags=["bronze", "airbyte"],
     max_active_tasks=2,
+    params={
+        "tables": Param(
+            default=[],
+            type="array",
+            description="List of table names to sync (empty = all tables)",
+        )
+    },
 )
 def postgres_to_snowflake_bronze():
 
     @task
-    def list_connections(**context):
-        conf = context.get("dag_run").conf or {}
-        tables = conf.get("tables")  # optional ["customers"]
+    def list_connections(params=None):
+        tables = params.get("tables") if params else []
 
         client = AirbyteClient(
             base_url=os.getenv("AIRBYTE_API_URL"),
