@@ -9,5 +9,4 @@ retail_pipeline:
       role: ACCOUNTADMIN
       warehouse: RETAIL_WH
       database: RETAIL_ANALYTICS
-      schema: analytics
       threads: 4

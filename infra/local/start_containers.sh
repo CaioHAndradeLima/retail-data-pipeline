@@ -14,11 +14,7 @@ chmod +x ./airbyte/start_airbyte.sh
 docker compose \
   --env-file ../../.env \
   -f postgres/docker-compose.yml \
-  -f airflow/docker-compose.yml \
-  up -d > containers_init_log.txt
-
-# Logging airflow user
-echo "Airflow user: admin password: admin"
+  up -d
 
 # airbyte set up
 cd airbyte;
@@ -29,4 +25,12 @@ cd airbyte;
 ./create_connections.sh
 
 cd ..;
+
+docker compose \
+  --env-file ../../.env \
+  -f airflow/docker-compose.yml \
+  up -d
+
+# Logging airflow user
+echo "Airflow user: admin password: admin"
 
