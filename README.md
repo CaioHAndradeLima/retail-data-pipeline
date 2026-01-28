@@ -21,47 +21,291 @@ CDC is enabled for the `orders` table in the OLTP database. All other tables are
 
 ---
 
-## High-Level Architecture
+# 🚀 Data Platform – Automated Postgres → Snowflake Pipeline
+
+This project implements a **fully automated, scalable ELT data platform** using **Postgres, Airbyte, Airflow, dbt, and Snowflake**.
+
+The core idea is simple:
+
+> **You declare your source tables once — everything else (connections, syncs, orchestration, transformations) is generated and executed automatically.**
+
+---
+
+## 🧠 High-Level Architecture
 
 ```
                      ┌──────────────────────┐
                      │   Source Systems     │
-                     │ Postgres OLTP / CDC  │
+                     │  Postgres (OLTP)     │
                      └──────────┬───────────┘
-                                |
-          ┌─────────────────────┴─────────────────────┐
-          │                                           │
-   (Batch / ELT)                               (CDC / Events)
-          │                                           │
-          │                                     Debezium (CDC)
-          │                                           │
-          v                                           v
-┌─────────────────────────┐               ┌────────────────────────┐
-│ Snowflake               │               │ Kafka                  │
-│ BRONZE_BATCH            │               │ CDC Topics             │
-│ Raw API / Snapshot Data │               │ (c / u / d events)     │
-└──────────┬──────────────┘               └──────────┬─────────────┘
-           │                                         │
-          dbt                                  Python Consumers
-           │                                (Micro-batch logic)
-           v                               (Airflow – every 5 min)
-┌────────────────────────┐                           │
-│ Snowflake              │                           v
-│ SILVER_BATCH           │                ┌────────────────────────┐
-│ Clean / Normalized     │                │ Snowflake              │
-└──────────┬─────────────┘                │ BRONZE_CDC             │
-           │                              │ Raw Change Events      │
-          dbt                             └──────────┬─────────────┘
-           │                                         |
-           v                                        dbt
-┌─────────────────────────┐                          |
-│ Snowflake               │                          v
-│ GOLD                    │◄─────────────────────────+
-│ Business Metrics / Marts│    (Merge / Align)
-└──────────┬──────────────┘
-           |
-       BI / Analytics
+                                │
+                                │  CDC / Incremental
+                                │
+                        ┌───────▼────────┐
+                        │   Airbyte       │
+                        │ (Ingestion)     │
+                        └───────┬────────┘
+                                │
+                                │ Raw replication
+                                │
+                    ┌───────────▼────────────┐
+                    │ Snowflake               │
+                    │ BRONZE                  │
+                    │ Raw / CDC tables        │
+                    └───────────┬────────────┘
+                                │
+                               dbt
+                                │
+                    ┌───────────▼────────────┐
+                    │ Snowflake               │
+                    │ SILVER                  │
+                    │ Clean / Normalized      │
+                    └───────────┬────────────┘
+                                │
+                               dbt
+                                │
+                    ┌───────────▼────────────┐
+                    │ Snowflake               │
+                    │ GOLD                    │
+                    │ Business Marts          │
+                    └───────────┬────────────┘
+                                │
+                          BI / Analytics
 ```
+
+---
+
+## 🔁 Execution Flow (End-to-End)
+
+```
+Postgres
+   │
+   │ 1️⃣ Schema & table discovery
+   ▼
+Airbyte API (scripts)
+   │
+   │ 2️⃣ Auto-create Sources & Destinations
+   │ 3️⃣ Auto-generate table mappings
+   ▼
+Airbyte Connections
+   │
+   │ 4️⃣ Trigger syncs programmatically
+   ▼
+Airflow (Master DAG)
+   │
+   │ 5️⃣ Orchestrate ingestion
+   ▼
+dbt (Silver & Gold)
+```
+
+---
+
+## 📂 Repository Structure
+
+```
+.
+├── airbyte/
+│   ├── brew_install_airbyte_abctl.sh
+│   ├── start_airbyte.sh
+│   ├── setup_postgres_source.sh
+│   ├── setup_snowflake_destination.sh
+│   ├── generate_tables_json.sh
+│   ├── create_connections.sh
+│   └── tables.json
+│
+├── airflow/
+│   ├── docker-compose.yml
+│   ├── Dockerfile
+│   ├── init_connections.sh
+│   ├── util/
+│   └── validation/
+│
+├── postgres/
+│   ├── docker-compose.yml
+│   └── init/
+│
+├── start_containers.sh
+└── stop_containers.sh
+```
+
+---
+
+## ⚙️ Fully Automated Setup
+
+### 1️⃣ Infrastructure Startup
+
+```bash
+./start_containers.sh
+```
+
+This will:
+- Start **Postgres**
+- Start **Airbyte**
+- Start **Airflow**
+
+---
+
+### 2️⃣ Automatic Postgres Source Creation (CDC)
+
+The script `setup_postgres_source.sh`:
+
+- Connects to the **Airbyte API**
+- Creates a **Postgres source**
+- Enables **CDC replication**
+- Configures replication slot & publication
+
+Example:
+
+```json
+"replication_method": {
+  "method": "CDC",
+  "replication_slot": "airbyte_slot",
+  "publication": "airbyte_publication"
+}
+```
+
+➡️ No manual UI steps required.
+
+---
+
+### 3️⃣ Automatic Snowflake Destination Setup
+
+A dedicated script:
+- Creates the Snowflake destination
+- Configures warehouse, database, schema
+- Stores the destination ID for reuse
+
+---
+
+### 4️⃣ Dynamic Table Discovery & Mapping
+
+The script `generate_tables_json.sh`:
+
+- Reads the **Airbyte catalog**
+- Detects:
+  - Schemas
+  - Tables
+  - Primary keys
+- Generates `tables.json` automatically
+
+Example output:
+
+```json
+{
+  "name": "customers_postgres_to_snowflake",
+  "tables": [
+    {
+      "name": "customers",
+      "namespace": "retail",
+      "sync_mode": "incremental",
+      "destination_sync_mode": "append_dedup",
+      "primary_key": ["customer_id"]
+    }
+  ]
+}
+```
+
+🧠 **To add a new table:**
+- Add it to Postgres
+- Re-run the script
+- Done.
+
+---
+
+### 5️⃣ Connection Creation (Mass-Scale)
+
+`create_connections.sh`:
+
+- Reads `tables.json`
+- Creates **one Airbyte connection per table**
+- Applies best practices:
+  - Incremental sync
+  - Deduplication
+  - Primary key aware
+
+This makes the system **horizontally scalable**.
+
+---
+
+## 🧩 Orchestration with Airflow
+
+Airflow owns **execution**, not configuration.
+
+### Master DAG
+
+```python
+@dag(schedule="@daily", catchup=False)
+def postgres_to_snowflake_bronze():
+
+    @task
+    def list_connections(params=None):
+        connections = discover_connections(client, tables)
+        return [c["connectionId"] for c in connections]
+
+    @task
+    def sync(connection_id: str):
+        sync_connection(client, connection_id)
+
+    sync.expand(connection_id=list_connections())
+```
+
+### What this gives you:
+- Dynamic task mapping
+- Parallel ingestion
+- Table-level isolation
+- Easy re-runs
+
+---
+
+## 🧪 Transformations (dbt)
+
+After ingestion:
+
+- **BRONZE** → raw Airbyte output
+- **SILVER** → cleaned & normalized
+- **GOLD** → analytics-ready marts
+
+Airflow can trigger dbt runs after ingestion.
+
+---
+
+## 🌟 Key Benefits
+
+✅ Fully automated
+
+✅ Declarative table management
+
+✅ Scales to hundreds of tables
+
+✅ No Airbyte UI dependency
+
+✅ Production-ready CDC
+
+✅ Clear separation of concerns
+
+---
+
+## 🧠 Mental Model
+
+> **Postgres schema = source of truth**
+>
+> Everything else is derived automatically.
+
+You don’t manage pipelines.
+
+You manage **data models**.
+
+---
+
+## 🏁 TL;DR
+
+- Add or change tables in Postgres
+- Re-run scripts
+- Airbyte connections regenerate
+- Airflow orchestrates syncs
+- dbt builds analytics layers
+
+🚀 **Zero-click ingestion at scale
 
 ---
 
