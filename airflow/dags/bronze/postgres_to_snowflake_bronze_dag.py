@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 
 from src.ingestion.airbyte.tasks import list_connections
 from src.ingestion.airbyte.task_groups import airbyte_connection_group
+from src.lineage.datasets import RETAIL_BRONZE
 
 load_dotenv()
 
@@ -28,7 +29,10 @@ with DAG(
 ) as dag:
 
     start = EmptyOperator(task_id="start")
-    end = EmptyOperator(task_id="end")
+    end = EmptyOperator(
+        task_id="Trigger_DBT_Silver",
+        outlets=[RETAIL_BRONZE],
+    )
 
     connections = list_connections()
 
