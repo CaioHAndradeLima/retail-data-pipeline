@@ -45,22 +45,27 @@ def postgres_to_snowflake_bronze():
         )
 
         connections = discover_connections(client, tables)
-        return [c["connectionId"] for c in connections]
-
+        return [
+            {
+                "connection_id": c["connectionId"],
+                "connection_name": c["name"],
+            }
+            for c in connections
+        ]
     connection_ids = list_connections()
 
     @task_group()
-    def airbyte_connection_group(connection_id: str):
+    def airbyte_connection_group(connection: dict):
         sync = AirbyteTriggerSyncOperator(
-            task_id="sync",
             airbyte_conn_id="airbyte_default",
-            connection_id=connection_id,
+            connection_id=connection["connection_id"],
             asynchronous=True,
             pool="airbyte_sequential",
+            task_id="sync_" + connection["connection_name"],
         )
 
         sensor = AirbyteJobSensor(
-            task_id="sensor",
+            task_id="sensor_" + + connection["connection_name"],
             airbyte_conn_id="airbyte_default",
             airbyte_job_id=sync.output,
             pool="airbyte_sequential",
