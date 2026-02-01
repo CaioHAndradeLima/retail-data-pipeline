@@ -1,19 +1,18 @@
 import os
 from datetime import datetime
+from datetime import timedelta
 
 from airflow.decorators import dag, task
+from airflow.decorators import task_group
 from airflow.models import Variable
 from airflow.models.param import Param
-from dotenv import load_dotenv
 from airflow.providers.airbyte.operators.airbyte import AirbyteTriggerSyncOperator
 from airflow.providers.airbyte.sensors.airbyte import AirbyteJobSensor
 from airflow.utils.trigger_rule import TriggerRule
-from airflow.decorators import task_group
-from datetime import timedelta
+from dotenv import load_dotenv
 
 from src.ingestion.airbyte.client import AirbyteClient
 from src.ingestion.airbyte.discovery import discover_connections
-from src.ingestion.airbyte.sync import sync_connection
 
 load_dotenv()
 
@@ -64,10 +63,10 @@ def postgres_to_snowflake_bronze():
             airbyte_conn_id="airbyte_default",
             airbyte_job_id=sync.output,
             pool="airbyte_sequential",
-            poke_interval= 30,
+            poke_interval=30,
             timeout=60 * 60 * 60,
             retries=5,
-            retry_delay= timedelta(minutes=5),
+            retry_delay=timedelta(minutes=5),
         )
 
         sync >> sensor
