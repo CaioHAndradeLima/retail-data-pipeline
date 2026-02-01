@@ -4,6 +4,7 @@ from airflow import DAG
 from airflow.operators.bash import BashOperator
 from airflow.models import Variable
 from airflow.operators.empty import EmptyOperator
+from src.lineage.datasets import RETAIL_BRONZE, RETAIL_SILVER
 
 # -------------------------------------------------------
 # Config
@@ -27,12 +28,15 @@ with DAG(
     description="Run dbt Silver models in Snowflake",
     default_args=DEFAULT_ARGS,
     start_date=datetime(2024, 1, 1),
-    schedule_interval=None,
+    schedule=[RETAIL_BRONZE],
     catchup=False,
     tags=["dbt", "silver", "snowflake"],
 ) as dag:
     start = EmptyOperator(task_id="start")
-    end = EmptyOperator(task_id="end")
+    end = EmptyOperator(
+        task_id="Trigger_DBT_Gold",
+        outlets=[RETAIL_SILVER],
+    )
 
     # ---------------------------------------------------
     # dbt deps
