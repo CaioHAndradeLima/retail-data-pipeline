@@ -10,6 +10,7 @@ from airflow.providers.airbyte.operators.airbyte import AirbyteTriggerSyncOperat
 from airflow.providers.airbyte.sensors.airbyte import AirbyteJobSensor
 from airflow.utils.trigger_rule import TriggerRule
 from dotenv import load_dotenv
+from airflow.operators.empty import EmptyOperator
 
 from src.ingestion.airbyte.client import AirbyteClient
 from src.ingestion.airbyte.discovery import discover_connections
@@ -71,7 +72,10 @@ def postgres_to_snowflake_bronze():
 
         sync >> sensor
 
-    airbyte_connection_group.expand(connection_id=connection_ids)
+    start = EmptyOperator(task_id="start")
+    end = EmptyOperator(task_id="end")
+
+    start >> airbyte_connection_group.expand(connection_id=connection_ids) >> end
 
 
 dag = postgres_to_snowflake_bronze()
