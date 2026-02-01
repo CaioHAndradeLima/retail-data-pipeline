@@ -1,24 +1,17 @@
-import os
 from datetime import datetime
-from datetime import timedelta
-
-from airflow.decorators import dag, task
-from airflow.decorators import task_group
-from airflow.models import Variable
+from airflow import DAG
 from airflow.models.param import Param
-from airflow.providers.airbyte.operators.airbyte import AirbyteTriggerSyncOperator
-from airflow.providers.airbyte.sensors.airbyte import AirbyteJobSensor
-from airflow.utils.trigger_rule import TriggerRule
-from dotenv import load_dotenv
 from airflow.operators.empty import EmptyOperator
+from dotenv import load_dotenv
 
-from src.ingestion.airbyte.client import AirbyteClient
-from src.ingestion.airbyte.discovery import discover_connections
+from src.ingestion.airbyte.tasks import list_connections
+from src.ingestion.airbyte.task_groups import airbyte_connection_group
 
 load_dotenv()
 
 
-@dag(
+with DAG(
+    dag_id="postgres_to_snowflake_bronze",
     start_date=datetime(2024, 1, 1),
     schedule="@daily",
     catchup=False,
@@ -32,55 +25,11 @@ load_dotenv()
             description="List of table names to sync (empty = all tables)",
         )
     },
-)
-def postgres_to_snowflake_bronze():
-
-    @task
-    def list_connections(params=None):
-        tables = params.get("tables") if params else []
-
-        client = AirbyteClient(
-            base_url=os.getenv("AIRBYTE_API_URL"),
-            workspace_id=os.getenv("WORKSPACE_ID"),
-        )
-
-        connections = discover_connections(client, tables)
-        return [
-            {
-                "connection_id": c["connectionId"],
-                "connection_name": c["name"],
-            }
-            for c in connections
-        ]
-    connection_ids = list_connections()
-
-    @task_group()
-    def airbyte_connection_group(connection: dict):
-        sync = AirbyteTriggerSyncOperator(
-            airbyte_conn_id="airbyte_default",
-            connection_id=connection["connection_id"],
-            asynchronous=True,
-            pool="airbyte_sequential",
-            task_id="sync_" + connection["connection_name"],
-        )
-
-        sensor = AirbyteJobSensor(
-            task_id="sensor_" + + connection["connection_name"],
-            airbyte_conn_id="airbyte_default",
-            airbyte_job_id=sync.output,
-            pool="airbyte_sequential",
-            poke_interval=30,
-            timeout=60 * 60 * 60,
-            retries=5,
-            retry_delay=timedelta(minutes=5),
-        )
-
-        sync >> sensor
+) as dag:
 
     start = EmptyOperator(task_id="start")
     end = EmptyOperator(task_id="end")
 
-    start >> airbyte_connection_group.expand(connection_id=connection_ids) >> end
+    connections = list_connections()
 
-
-dag = postgres_to_snowflake_bronze()
+    start >> airbyte_connection_group.expand_kwargs(connections) >> end
