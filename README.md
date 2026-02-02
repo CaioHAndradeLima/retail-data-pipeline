@@ -20,7 +20,7 @@
 You will generate your entire infra, <b>capable of deal 10 thousand new tables</b>, including all ingestion
 configuration between production source and Snowflake/Bronze, <b>without any effort</b>. You only need run `setup.sh`.
 
-```bash
+``` yml
 ./setup.sh execution
 
 Collect your Snowflake credentials and save into .env
@@ -56,7 +56,7 @@ Bronze/Silver/Gold DAG is ready to run
 
 **Conceptual flow:**
 
-```
+``` yml
     DAG started
         │
         ▼
@@ -157,7 +157,7 @@ BI / Analytics  ◄───────────┘
 
 [![Retail Data Pipeline](https://github.com/CaioHAndradeLima/retail-data-pipeline/actions/workflows/ci.yml/badge.svg)](https://github.com/CaioHAndradeLima/retail-data-pipeline/actions/workflows/ci.yml)
 
-``` bash
+```bash
 Steps
 
 Lint Check  ────────────┐
@@ -198,7 +198,7 @@ All Snowflake structure is defined by Terraform Architecture, including:
 - Manage roles, grants, and permissions
 - Prepare the environment for dbt transformations
 
-```
+```yml
 infra/remote/snowflake/
 ├── setup/
 │   ├── generate_terraform_user.sh 
@@ -215,7 +215,7 @@ infra/remote/snowflake/
 ---
 
 ## Local Infra
-```
+```yml
 infra/local
 ├── postgres/               # Airbyte ingestion tool directory
 ├── airbyte/                # Airbyte ingestion tool directory
@@ -228,7 +228,7 @@ infra/local
 
 ### Postgres configuration-driven flow
 
-```
+```yml
 └── init/
     ├── 01_wal_level_setup.sql  # SET wal_level = logical;
     │                                        
@@ -243,7 +243,7 @@ infra/local
 
 ### Airbyte configuration-driven flow
 
-```
+```yml
 brew_install_airbyte_abctl.sh  ─────────────┐
    ├── Install Airbyte via abctl            │
    │                                        │
@@ -277,7 +277,7 @@ Start Airflow  ◄────────────────────�
 
 ### Airflow orchestrator
 
-```
+```yml
 Container starts  ──────────────┐
    │                            │
    ▼                            │
