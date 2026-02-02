@@ -34,7 +34,6 @@ services:
       chmod +x /opt/airflow/init_connections.sh; /opt/airflow/init_connections.sh; \
       python -m pip install --upgrade pip; python -m pip install dbt-core dbt-snowflake; \
       chmod +x /opt/airflow/create_pools.sh; /opt/airflow/create_pools.sh; \
-      chmod +x /opt/airflow/start_dags.sh; /opt/airflow/start_dags.sh; \
       "
     volumes:
       - ${PROJECT_ROOT}/infra/local/airflow/init_connections.sh:/opt/airflow/init_connections.sh
