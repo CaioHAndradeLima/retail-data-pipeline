@@ -1,10 +1,6 @@
 # HTTP client (Airbyte API)
 requests>=2.31.0,<3
 
-# Snowflake
-snowflake-connector-python==3.6.0
-snowflake-sqlalchemy==1.5.1
-
 # Environment variables
 python-dotenv>=1.0.0,<2
 
