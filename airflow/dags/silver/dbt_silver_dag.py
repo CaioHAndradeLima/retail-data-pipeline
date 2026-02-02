@@ -31,6 +31,7 @@ with DAG(
     schedule=[RETAIL_BRONZE],
     catchup=False,
     tags=["dbt", "silver", "snowflake"],
+    is_paused_upon_creation=False,
 ) as dag:
     start = EmptyOperator(task_id="start")
     end = EmptyOperator(

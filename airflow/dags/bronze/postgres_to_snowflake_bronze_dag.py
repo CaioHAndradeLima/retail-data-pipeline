@@ -26,6 +26,7 @@ with DAG(
             description="List of table names to sync (empty = all tables)",
         )
     },
+    is_paused_upon_creation=False,
 ) as dag:
 
     start = EmptyOperator(task_id="start")
