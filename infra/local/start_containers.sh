@@ -5,12 +5,14 @@ set -e
 chmod +x ./airbyte/create_connections.sh
 chmod +x ./airbyte/setup_postgres_source.sh
 chmod +x ./airbyte/setup_snowflake_destination.sh
-chmod +x ./airbyte/generate_ingestion.json.sh
+chmod +x ./airbyte/generate_ingestion_json.sh
 chmod +x ./airbyte/setup_credentials.sh
 chmod +x ./airbyte/start_airbyte.sh
 chmod +x ./airbyte/login.sh
 
-./airbyte/start_airbyte.sh
+cd airbyte;
+./start_airbyte.sh
+cd ..;
 
 # Starting postgres and CDC connectors
 docker compose \
