@@ -1,6 +1,7 @@
 import requests
 import os
 
+
 class AirbyteClient:
 
     def __init__(self, base_url: str, workspace_id: str):
