@@ -10,7 +10,7 @@ set +a
 
 AIRBYTE_BASE="http://localhost:8000/api/v1"
 SOURCE_ID="${POSTGRES_SOURCE_ID}"
-OUTPUT_FILE="tables.json"
+OUTPUT_FILE="ingestion.json"
 
 if [ -z "$SOURCE_ID" ]; then
   echo "ERROR: POSTGRES_SOURCE_ID is not set"
@@ -33,7 +33,7 @@ if [ "$STREAM_COUNT" -eq 0 ]; then
 fi
 
 echo "Discovered $STREAM_COUNT streams"
-echo "Generating tables.json..."
+echo "Generating ingestion.json..."
 
 jq -n \
   --argjson catalog "$CATALOG" '
@@ -61,4 +61,4 @@ jq -n \
   ]
   ' > "$OUTPUT_FILE"
 
-echo "tables.json generated successfully"
+echo "ingestion.json generated successfully"

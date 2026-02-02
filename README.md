@@ -36,10 +36,10 @@ Start Postgres db simulating real production environment
 Start Airbyte and connect with Postgres and Snowflake
    │
    ▼
-Discovers Postgres tables automatically and generate a tables.json
+Discovers Postgres tables automatically and generate a ingestion.json
    │
    ▼
-Create all ingestion connection between Postgres-Snowflake based on tables.json
+Create all ingestion connection between Postgres-Snowflake based on ingestion.json
    │
    ▼
 Start Airflow and add Airbyte as a new connection
@@ -260,14 +260,14 @@ setup_snowflake_destination.sh              │
    ├── Add Snowflake connection             │
    │                                        │
    ▼                                        │
-generate_tables_json.sh                     │
+generate_ingestion.json.sh                  │
    ├── Read Postgres Source                 │
    └── Create ingestion tables/connections  │
-   └── insert into tables.json              │
+   └── insert into ingestion.json           │
    │                                        │
    ▼                                        │
 create_connections.sh                       │
-   ├── Read tables.json                     │
+   ├── Read ingestion.json                  │
    ├── Architecture ingestion connection    │
    ├── Add or update all ingestion process  │
    │                                        │

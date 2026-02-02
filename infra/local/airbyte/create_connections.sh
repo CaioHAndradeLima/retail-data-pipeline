@@ -6,7 +6,7 @@ set -euo pipefail
 # ---------------------------------------------------
 ENV_FILE="../../../.env"
 AIRBYTE_BASE="http://localhost:8000/api/v1"
-TABLES_FILE="tables.json"
+TABLES_FILE="ingestion.json"
 AUTH_HEADER=$(./login.sh)
 
 # ---------------------------------------------------
@@ -26,7 +26,7 @@ SOURCE_ID="$POSTGRES_SOURCE_ID"
 DESTINATION_ID="$SNOWFLAKE_DESTINATION_ID"
 
 if [ ! -f "$TABLES_FILE" ]; then
-  echo "ERROR: tables.json not found"
+  echo "ERROR: ingestion.json not found"
   exit 1
 fi
 
